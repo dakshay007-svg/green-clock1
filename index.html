@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Green Clock</title>
+<style>
+  /* ---------- EASY SETTINGS: change colours here ---------- */
+  :root {
+    --bg: #191919;                     /* Notion dark theme background */
+    --accent: #5fb98a;                 /* main green: arcs, hands, time text */
+    --accent-soft: rgba(95, 185, 138, 0.6);
+    --dot: #d6f0e1;                    /* centre dot */
+  }
+
+  html { color-scheme: dark; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .ring { fill: none; stroke: var(--accent); }
+  .hand { stroke: var(--accent); stroke-linecap: round; }
+
+  #ringH { stroke-width: 2.6; }
+  #ringM { stroke-width: 3.2; }
+  #ringS { stroke-width: 1.2; stroke: var(--accent-soft); }
+
+  #handH, #handM { stroke-width: 2.6; }
+  #handS { stroke-width: 1.2; stroke: var(--accent-soft); }
+
+  #dot { fill: var(--dot); }
+
+  #digital {
+    fill: var(--accent);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    font-weight: 700;
+    text-anchor: middle;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+
+<svg viewBox="-200 -200 400 400" preserveAspectRatio="xMidYMid meet" aria-label="Clock">
+  <!-- Arcs: hours (inner), minutes (middle), seconds (outer). They start at 12 and sweep clockwise. -->
+  <circle id="ringH" class="ring" r="85"  transform="rotate(-90)"/>
+  <circle id="ringM" class="ring" r="125" transform="rotate(-90)"/>
+  <circle id="ringS" class="ring" r="165" transform="rotate(-90)"/>
+
+  <!-- Hands: each one ends exactly where its arc ends -->
+  <line id="handH" class="hand" x1="0" y1="0" x2="0" y2="-85"/>
+  <line id="handM" class="hand" x1="0" y1="0" x2="0" y2="-125"/>
+  <line id="handS" class="hand" x1="0" y1="18" x2="0" y2="-165"/>
+
+  <circle id="dot" r="6"/>
+  <text id="digital" x="0" y="38">--:--</text>
+</svg>
+
+<script>
+  // ---------- EASY SETTINGS ----------
+  const TIME_24H = false;        // true = 13:45, false = 1:45
+  const SMOOTH_SECONDS = true;   // true = sweeping seconds, false = ticks once per second
+
+  const $ = (id) => document.getElementById(id);
+  const ringH = $('ringH'), ringM = $('ringM'), ringS = $('ringS');
+  const handH = $('handH'), handM = $('handM'), handS = $('handS');
+  const digital = $('digital');
+
+  const circ = (r) => 2 * Math.PI * r;
+  const CH = circ(85), CM = circ(125), CS = circ(165);
+
+  function setArc(el, total, fraction) {
+    el.setAttribute('stroke-dasharray', (fraction * total) + ' ' + total);
+  }
+
+  let lastLabel = '';
+
+  function tick() {
+    const now = new Date();
+    const ms = SMOOTH_SECONDS ? now.getMilliseconds() : 0;
+
+    const sec  = now.getSeconds() + ms / 1000;
+    const min  = now.getMinutes() + sec / 60;
+    const hour = (now.getHours() % 12) + min / 60;
+
+    const fs = sec / 60;
+    const fm = min / 60;
+    const fh = hour / 12;
+
+    setArc(ringS, CS, fs);
+    setArc(ringM, CM, fm);
+    setArc(ringH, CH, fh);
+
+    handS.setAttribute('transform', 'rotate(' + (fs * 360) + ')');
+    handM.setAttribute('transform', 'rotate(' + (fm * 360) + ')');
+    handH.setAttribute('transform', 'rotate(' + (fh * 360) + ')');
+
+    // Digital time, only touched when the minute changes
+    let h = now.getHours();
+    if (!TIME_24H) h = h % 12 || 12;
+    const label = (TIME_24H ? String(h).padStart(2, '0') : String(h)) + ':' +
+                  String(now.getMinutes()).padStart(2, '0');
+    if (label !== lastLabel) {
+      digital.textContent = label;
+      lastLabel = label;
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  tick();
+</script>
+
+</body>
+</html>
